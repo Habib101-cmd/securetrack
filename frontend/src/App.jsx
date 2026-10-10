@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
 import IssuesListPage from './pages/IssuesListPage'
 import LoginPage from './pages/LoginPage'
+import NewIssuePage from './pages/NewIssuePage'
 
 export default function App() {
   return (
@@ -14,6 +15,10 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/issues" element={<IssuesListPage />} />
+
+          <Route element={<ProtectedRoute roles={['analyste', 'admin']} />}>
+            <Route path="/issues/new" element={<NewIssuePage />} />
+          </Route>
         </Route>
       </Route>
 
