@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
+import IssueDetailPage from './pages/IssueDetailPage'
 import IssuesListPage from './pages/IssuesListPage'
 import LoginPage from './pages/LoginPage'
 import NewIssuePage from './pages/NewIssuePage'
@@ -15,6 +16,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/issues" element={<IssuesListPage />} />
+          <Route path="/issues/:id" element={<IssueDetailPage />} />
 
           <Route element={<ProtectedRoute roles={['analyste', 'admin']} />}>
             <Route path="/issues/new" element={<NewIssuePage />} />
