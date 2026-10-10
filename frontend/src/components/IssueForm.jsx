@@ -1,38 +1,55 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { listTechnicians } from '../api/issues'
 import { issueSchema } from '../schemas/issueSchema'
 import { URGENCIES } from '../utils/constants'
 
 const FIELDS = ['title', 'description', 'device', 'urgency', 'assignee', 'due_date']
 
-function Field({ label, id, error, children }) {
+function FieldError({ error }) {
+  if (!error) return null
+  return (
+    <p role="alert" className="mt-1.5 flex animate-fade items-center gap-1.5 text-xs text-alert-ink">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {error.message}
+    </p>
+  )
+}
+
+function Field({ label, id, error, hint, children }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium mb-1">
-        {label}
-      </label>
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <label htmlFor={id} className="text-sm font-medium">{label}</label>
+        {hint}
+      </div>
       {children}
-      {error && <p className="text-xs text-red-600 mt-1">{error.message}</p>}
+      <FieldError error={error} />
     </div>
   )
 }
 
 export default function IssueForm({ onSubmit }) {
   const [globalError, setGlobalError] = useState('')
-  const { data: technicians = [] } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: listTechnicians,
-  })
+  const { data: technicians = [] } = useQuery({ queryKey: ['technicians'], queryFn: listTechnicians })
 
   const {
     register,
+    control,
+    watch,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(issueSchema) })
+  } = useForm({
+    resolver: zodResolver(issueSchema),
+    defaultValues: { title: '', description: '', device: '', urgency: '', assignee: '', due_date: '' },
+  })
+
+  const description = watch('description') ?? ''
 
   const submit = async (values) => {
     setGlobalError('')
@@ -47,86 +64,104 @@ export default function IssueForm({ onSubmit }) {
       })
     } catch (e) {
       if (e.status === 400 && e.data) {
-        // Erreurs de validation renvoyées par le serveur, champ par champ
         Object.entries(e.data).forEach(([field, messages]) => {
-          if (FIELDS.includes(field)) {
-            setError(field, { message: [].concat(messages).join(' ') })
-          }
+          if (FIELDS.includes(field)) setError(field, { message: [].concat(messages).join(' ') })
         })
-        setGlobalError('Certains champs sont invalides.')
+        setGlobalError('Certains champs sont invalides. Corrigez-les puis réessayez.')
       } else if (e.status === 403) {
         setGlobalError("Vous n'avez pas le droit de créer un problème.")
       } else {
-        setGlobalError('Une erreur est survenue. Réessayez.')
+        setGlobalError("Le problème n'a pas pu être enregistré. Réessayez.")
       }
     }
   }
 
-  const input = 'w-full border rounded px-3 py-2'
-
   return (
-    <form
-      onSubmit={handleSubmit(submit)}
-      className="bg-white rounded-xl shadow p-6 space-y-4 max-w-2xl"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(submit)} noValidate className="card max-w-3xl space-y-6 p-6 sm:p-8">
       {globalError && (
-        <p role="alert" className="text-sm text-red-700 bg-red-50 p-2 rounded">
+        <p role="alert" className="animate-shake rounded-lg bg-alert-soft px-3.5 py-2.5 text-sm text-alert-ink">
           {globalError}
         </p>
       )}
 
       <Field label="Titre du problème" id="title" error={errors.title}>
-        <input id="title" className={input} {...register('title')} />
+        <input id="title" className="field" placeholder="Exemple : Logiciel ancien" {...register('title')} />
       </Field>
 
-      <Field label="Description" id="description" error={errors.description}>
-        <textarea id="description" rows={4} className={input} {...register('description')} />
+      <Field
+        label="Description"
+        id="description"
+        error={errors.description}
+        hint={<span className="text-xs tabular-nums text-ink-soft">{description.length}/1000</span>}
+      >
+        <textarea
+          id="description"
+          rows={4}
+          className="field"
+          placeholder="Que se passe-t-il, et quel risque cela représente-t-il ?"
+          {...register('description')}
+        />
       </Field>
 
       <Field label="Appareil ou site concerné" id="device" error={errors.device}>
-        <input id="device" className={input} {...register('device')} />
+        <input id="device" className="field" placeholder="Exemple : Ordinateur 01" {...register('device')} />
       </Field>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Niveau d'urgence" id="urgency" error={errors.urgency}>
-          <select id="urgency" className={input} defaultValue="" {...register('urgency')}>
-            <option value="" disabled>
-              Choisir…
-            </option>
-            {Object.entries(URGENCIES).map(([value, { label }]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-medium">Niveau d'urgence</legend>
+        <Controller
+          name="urgency"
+          control={control}
+          render={({ field }) => (
+            <div role="radiogroup" aria-label="Niveau d'urgence" className="grid grid-cols-3 gap-2">
+              {Object.entries(URGENCIES).map(([value, u]) => {
+                const active = field.value === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => field.onChange(value)}
+                    className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                      active
+                        ? `border-transparent ${u.soft} ${u.text} shadow-[inset_0_0_0_2px_currentColor]`
+                        : 'border-line bg-paper text-ink-soft hover:border-ink-soft hover:text-ink'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${u.dot}`} aria-hidden="true" />
+                    {u.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        />
+        <FieldError error={errors.urgency} />
+      </fieldset>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field label="Responsable" id="assignee" error={errors.assignee}>
+          <select id="assignee" className="field" {...register('assignee')}>
+            <option value="" disabled>Choisir un technicien</option>
+            {technicians.map((t) => (
+              <option key={t.id} value={t.id}>{t.first_name}</option>
             ))}
           </select>
         </Field>
 
-        <Field label="Responsable" id="assignee" error={errors.assignee}>
-          <select id="assignee" className={input} defaultValue="" {...register('assignee')}>
-            <option value="" disabled>
-              Choisir…
-            </option>
-            {technicians.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.first_name}
-              </option>
-            ))}
-          </select>
+        <Field label="Date d'échéance (facultatif)" id="due_date" error={errors.due_date}>
+          <input id="due_date" type="date" className="field" {...register('due_date')} />
         </Field>
       </div>
 
-      <Field label="Date d'échéance (facultatif)" id="due_date" error={errors.due_date}>
-        <input id="due_date" type="date" className={input} {...register('due_date')} />
-      </Field>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="bg-slate-800 text-white rounded px-5 py-2 hover:bg-slate-700 disabled:opacity-50"
-      >
-        {isSubmitting ? 'Enregistrement…' : 'Ajouter le problème'}
-      </button>
+      <div className="flex items-center gap-3 border-t border-line pt-6">
+        <button type="submit" disabled={isSubmitting} className="btn-primary">
+          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+          {isSubmitting ? 'Enregistrement…' : 'Ajouter le problème'}
+        </button>
+        <Link to="/issues" className="btn-secondary">Annuler</Link>
+      </div>
     </form>
   )
 }

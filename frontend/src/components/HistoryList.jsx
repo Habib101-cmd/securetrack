@@ -1,13 +1,15 @@
+import { ArrowRight } from 'lucide-react'
 import { STATUSES, URGENCIES } from '../utils/constants'
+import { formatDateTime } from '../utils/dates'
 
 const FIELD_LABELS = {
-  status: 'État',
-  urgency: 'Urgence',
-  assignee: 'Responsable',
-  title: 'Titre',
-  description: 'Description',
-  device: 'Appareil',
-  due_date: 'Échéance',
+  status: "l'état",
+  urgency: "l'urgence",
+  assignee: 'le responsable',
+  title: 'le titre',
+  description: 'la description',
+  device: "l'appareil",
+  due_date: "l'échéance",
 }
 
 function format(field, value) {
@@ -18,21 +20,30 @@ function format(field, value) {
 
 export default function HistoryList({ history }) {
   if (history.length === 0) {
-    return <p className="text-sm text-slate-500">Aucune modification enregistrée.</p>
+    return <p className="text-sm text-ink-soft">Aucune modification enregistrée.</p>
   }
 
   return (
-    <ul className="space-y-2 text-sm">
+    <ol className="relative space-y-5 border-l border-line pl-5">
       {history.map((h) => (
-        <li key={h.id} className="border-l-4 border-slate-300 pl-3">
-          <span className="font-medium">{h.user}</span> a modifié{' '}
-          <span className="font-medium">{FIELD_LABELS[h.field] ?? h.field}</span> :{' '}
-          {format(h.field, h.old_value)} → {format(h.field, h.new_value)}
-          <span className="block text-xs text-slate-500">
-            {new Date(h.created_at).toLocaleString('fr-FR')}
-          </span>
+        <li key={h.id} className="relative text-sm">
+          <span
+            aria-hidden="true"
+            className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-paper bg-ink-soft"
+          />
+          <p>
+            <span className="font-medium">{h.user}</span> a modifié {FIELD_LABELS[h.field] ?? h.field}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-ink-soft">{format(h.field, h.old_value)}</span>
+            <ArrowRight className="h-3.5 w-3.5 text-ink-soft" aria-hidden="true" />
+            <span className="font-medium">{format(h.field, h.new_value)}</span>
+          </p>
+          <time dateTime={h.created_at} className="mt-0.5 block text-xs text-ink-soft">
+            {formatDateTime(h.created_at)}
+          </time>
         </li>
       ))}
-    </ul>
+    </ol>
   )
 }
