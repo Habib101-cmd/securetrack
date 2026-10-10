@@ -39,10 +39,15 @@ class IssueViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        if user.role == "technicien" and set(serializer.validated_data) - {"status"}:
-            raise PermissionDenied("Un technicien ne peut modifier que l'état.")
+        data = serializer.validated_data
 
-        old = {f: str(getattr(serializer.instance, f)) for f in serializer.validated_data}
+        if user.role == "technicien":
+            if set(data) - {"status"}:
+                raise PermissionDenied("Un technicien ne peut modifier que l'état.")
+            if data.get("status") == Issue.Status.REJETE:
+                raise PermissionDenied("Seul un analyste peut rejeter un problème.")
+
+        old = {f: str(getattr(serializer.instance, f)) for f in data}
         issue = serializer.save()
 
         for field, old_value in old.items():

@@ -20,7 +20,17 @@ export function AuthProvider({ children }) {
     }
     init()
   }, [])
-
+  useEffect(() => {
+    const recheck = async () => {
+      try {
+        setUser(await getMe())   // toujours connecté : le 403 était un vrai refus de droits
+      } catch {
+        setUser(null)            // session expirée : ProtectedRoute renvoie vers /login
+      }
+    }
+    window.addEventListener('api-forbidden', recheck)
+    return () => window.removeEventListener('api-forbidden', recheck)
+  }, [])
   const login = async (email, password) => {
     const u = await apiLogin(email, password)
     setUser(u)

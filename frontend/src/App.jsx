@@ -2,10 +2,12 @@ import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import DashboardPage from './pages/DashboardPage'
+import ForbiddenPage from './pages/ForbiddenPage'
 import IssueDetailPage from './pages/IssueDetailPage'
 import IssuesListPage from './pages/IssuesListPage'
 import LoginPage from './pages/LoginPage'
 import NewIssuePage from './pages/NewIssuePage'
+import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
   return (
@@ -24,8 +26,8 @@ export default function App() {
         </Route>
       </Route>
 
-      <Route path="/403" element={<p className="p-6">Accès refusé</p>} />
-      <Route path="*" element={<p className="p-6">Page introuvable</p>} />
+      <Route path="/403" element={<ForbiddenPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
