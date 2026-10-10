@@ -133,3 +133,15 @@ class SecurityTests(APITestCase):
             for _ in range(6)
         ]
         self.assertEqual(codes[-1], 429)
+
+    def test_technician_cannot_reject_issue(self):
+        self.client.force_login(self.sami)
+        r = self.client.patch(f"/api/issues/{self.issue_sami.id}/",
+                              {"status": "rejete"}, format="json")
+        self.assertEqual(r.status_code, 403)
+
+    def test_analyst_can_reject_issue(self):
+        self.client.force_login(self.analyste)
+        r = self.client.patch(f"/api/issues/{self.issue_sami.id}/",
+                              {"status": "rejete"}, format="json")
+        self.assertEqual(r.status_code, 200)

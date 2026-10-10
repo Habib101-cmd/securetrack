@@ -22,6 +22,10 @@ export async function api(path, { method = "GET", body } = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // Un 403 peut signifier « session expirée » : on demande à AuthContext de vérifier
+    if (res.status === 403 && path !== "/auth/me/") {
+      window.dispatchEvent(new Event("api-forbidden"));
+    }
     const error = new Error(data.error || data.detail || "Erreur API");
     error.status = res.status;
     error.data = data;
